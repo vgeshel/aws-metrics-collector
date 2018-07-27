@@ -1,4 +1,4 @@
-(defproject vgeshel/aws-metrics-collector "0.1.2"
+(defproject vgeshel/aws-metrics-collector "0.1.3"
   :description "Clojure AWS Cloudwatch metric collector"
   :dependencies [[org.clojure/clojure                   "1.9.0"]
                  [org.clojure/core.async                "0.4.474"]

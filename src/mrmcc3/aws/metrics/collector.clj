@@ -42,9 +42,12 @@
    {:pre [(s/valid? ::opts opts)]}
    (let [{:keys [namespace batch-size timeout buffer on-error on-success]}
          (merge defaults opts)
-         input-ch   (a/chan buffer transform/data->datums)
-         batch-ch   (a/chan 1 (map req/put-metric-data))
-         timeout-fn #(a/timeout timeout)]
+         input-ch      (a/chan buffer transform/data->datums)
+         batch-ch      (a/chan 1 (map req/put-metric-data))
+         timeout-fn    #(a/timeout timeout)
+         send-batch-fn (fn [batch]
+                         (when (seq batch)
+                           (a/>! batch-ch {:datums batch :namespace namespace})))]
 
      ;; batching
      (a/go-loop [batch [] timeout (timeout-fn)]
@@ -55,9 +58,10 @@
            (if (= ch input-ch)
              (if metric
                (recur (conj batch metric) timeout)
-               (a/close! batch-ch))
-             (do (when (seq batch)
-                   (a/>! batch-ch {:datums batch :namespace namespace}))
+               (do
+                 (send-batch-fn batch)
+                 (a/close! batch-ch)))
+             (do (send-batch-fn batch)
                  (recur [] (timeout-fn)))))))
 
      ;; requests
@@ -69,8 +73,8 @@
                                   (when on-error
                                     (on-error e)))
                                 (onSuccess [_  req  res]
-                                 (when on-success
-                                   (on-success req res)))))
+                                  (when on-success
+                                    (on-success req res)))))
          (recur)))
 
      input-ch)))
