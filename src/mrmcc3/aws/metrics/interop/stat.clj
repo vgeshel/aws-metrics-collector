@@ -14,7 +14,7 @@
   (s/and (s/keys :req-un [::hi ::lo ::count ::sum])
          (fn [{:keys [hi lo]}] (>= hi lo))))
 
-(defn statistic-set [{:keys [hi lo count sum]}]
+(defn ^StatisticSet statistic-set [{:keys [hi lo count sum]}]
   (cond-> (StatisticSet.)
     hi (.withMaximum (double hi))
     lo (.withMinimum (double lo))
@@ -26,5 +26,3 @@
   :ret ::set)
 
 #_(s/exercise-fn `statistic-set)
-
-

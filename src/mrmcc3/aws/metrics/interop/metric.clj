@@ -5,7 +5,7 @@
     [clojure.spec.gen.alpha :as gen])
   (:import
     (com.amazonaws.services.cloudwatch.model Dimension MetricDatum)
-    (java.util Date)))
+    (java.util Date Collection)))
 
 (s/def ::dimensions (s/map-of string? string? :max-count 10))
 (s/def ::stats ::stat/map)
@@ -30,13 +30,13 @@
 
 (defn datum [{:keys [dimensions name stats resolution value timestamp unit]}]
   (cond-> (MetricDatum.)
-    dimensions (.withDimensions (map dimension dimensions))
+    dimensions (.withDimensions ^Collection (map dimension dimensions))
     name (.withMetricName (str name))
     stats (.withStatisticValues (stat/statistic-set stats))
     resolution (.withStorageResolution (int resolution))
     value (.withValue (double value))
     true (.withTimestamp (or timestamp (Date.)))
-    unit (.withUnit unit)))
+    unit (.withUnit ^String unit)))
 
 (s/def ::datum
   (s/with-gen

@@ -3,6 +3,7 @@
     [clojure.spec.alpha :as s]
     [mrmcc3.aws.metrics.interop.metric :as metric])
   (:import
+   (java.util Collection)
     (com.amazonaws.services.cloudwatch.model PutMetricDataRequest)))
 
 (s/def ::namespace string?)
@@ -13,7 +14,7 @@
 (defn put-metric-data [{:keys [namespace datums]}]
   (-> (PutMetricDataRequest.)
       (.withNamespace namespace)
-      (.withMetricData datums)))
+      (.withMetricData ^Collection datums)))
 
 (s/fdef put-metric-data :args (s/cat :put-data ::map) :ret ::request)
 

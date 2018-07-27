@@ -67,7 +67,7 @@
      ;; requests
      (a/go-loop []
        (when-let [req (a/<! batch-ch)]
-         (.putMetricDataAsync async-client req
+         (.putMetricDataAsync ^AmazonCloudWatchAsyncClient async-client req
                               (reify AsyncHandler
                                 (onError [_ e]
                                   (when on-error
