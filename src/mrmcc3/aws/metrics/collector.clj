@@ -7,13 +7,17 @@
     [mrmcc3.aws.metrics.interop.req :as req])
   (:import
     (com.amazonaws.services.cloudwatch
-      AmazonCloudWatchAsyncClient AmazonCloudWatchAsyncClientBuilder)))
+     AmazonCloudWatchAsyncClient AmazonCloudWatchAsyncClientBuilder)
+    (com.amazonaws.services.cloudwatch.model PutMetricDataRequest PutMetricDataResult)
+    (com.amazonaws.handlers AsyncHandler)))
 
 (s/def ::batch-size (s/and int? #(<= 1 % 20)))
 (s/def ::timeout (s/and int? #(>= % 1000)))
 (s/def ::buffer #(satisfies? Buffer %))
 (s/def ::namespace string?)
-(s/def ::opts (s/keys :opt-un [::namespace ::batch-size ::timeout ::buffer]))
+(s/def ::on-error fn?)
+(s/def ::on-success fn?)
+(s/def ::opts (s/keys :opt-un [::namespace ::batch-size ::timeout ::buffer ::on-error ::on-success]))
 
 (def defaults
   {:namespace  "aws-metrics-collector"
@@ -36,7 +40,7 @@
   ([opts] (collector (AmazonCloudWatchAsyncClientBuilder/defaultClient) opts))
   ([async-client opts]
    {:pre [(s/valid? ::opts opts)]}
-   (let [{:keys [namespace batch-size timeout buffer]}
+   (let [{:keys [namespace batch-size timeout buffer on-error on-success]}
          (merge defaults opts)
          input-ch   (a/chan buffer transform/data->datums)
          batch-ch   (a/chan 1 (map req/put-metric-data))
@@ -59,7 +63,14 @@
      ;; requests
      (a/go-loop []
        (when-let [req (a/<! batch-ch)]
-         (.putMetricDataAsync async-client req)
+         (.putMetricDataAsync async-client req
+                              (reify AsyncHandler
+                                (onError [_ e]
+                                  (when on-error
+                                    (on-error e)))
+                                (onSuccess [_  req  res]
+                                 (when on-success
+                                   (on-success req res)))))
          (recur)))
 
      input-ch)))
